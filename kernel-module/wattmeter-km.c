@@ -16,7 +16,8 @@
 #include <linux/interrupt.h>  // Required for the IRQ code
 #include <linux/kobject.h>    // Using kobjects for the sysfs bindings
 #include <linux/time.h>       // Using the clock to measure time between meter presses
-#define  DEBOUNCE_TIME 200    ///< The default bounce time -- 200ms
+//#define  DEBOUNCE_TIME 200    ///< The default bounce time -- 200ms
+#define  DEBOUNCE_TIME 0        /// No debounce 
  
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Derek Molloy");
@@ -27,7 +28,7 @@ static bool isRising = 1;                   ///< Rising edge is the default IRQ 
 module_param(isRising, bool, S_IRUGO);      ///< Param desc. S_IRUGO can be read/not changed
 MODULE_PARM_DESC(isRising, " Rising edge = 1 (default), Falling edge = 0");  ///< parameter description
  
-static unsigned int gpioMeter = 44;       ///< Default GPIO is 44
+static unsigned int gpioMeter = 60;       ///< Default GPIO is 60
 module_param(gpioMeter, uint, S_IRUGO);    ///< Param desc. S_IRUGO can be read/not changed
 MODULE_PARM_DESC(gpioMeter, " GPIO Meter number (default=115)");  ///< parameter description
  
