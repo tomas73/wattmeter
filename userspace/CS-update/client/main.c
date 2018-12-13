@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
     PowerReportStruct report;
 
     char *powerFile="/tmp/power";
-    char *consumptionFile="/tmp/consumption"
+    char *consumptionFile="/tmp/consumption";
 
     /* Parse command line for required information */
     while ((opt = getopt(argc, argv, "h")) != -1)
