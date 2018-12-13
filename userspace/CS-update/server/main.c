@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
       fclose(fd);
       
       fd = fopen(consumptionFileName, "r");
-      fscanf(fd, "%f", &wh);
+      fscanf(fd, "%d", &wh);
       fclose(fd);
       
       report.W = (SCALE/diffTime);

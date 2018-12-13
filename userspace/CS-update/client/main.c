@@ -115,14 +115,11 @@ int readXBytes(int fd, uint8_t *buf, int numToRead)
  ******************************************************************************/
 int main(int argc, char *argv[])
 {
-    int32_t opt, retval, numRead, numToRead, length;
+    int32_t opt, retval;
     int sockfd;
     FILE *fd1;
     FILE *fd2;
     struct sockaddr_in serv_addr;
-    char *serverIP = NULL;
-    char *fileName = NULL;
-    int16_t port = -1;
     PowerReportStruct report;
 
     char *powerFile="/tmp/power";
