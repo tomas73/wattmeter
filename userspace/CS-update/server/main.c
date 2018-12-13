@@ -20,7 +20,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-
+#include "CS-defs.h"
 
 const char *powerFileName = "/sys/tomas/gpio60/diffTime";
 const char *consumptionFileName = "/sys/tomas/gpio60/numWattHours";
@@ -77,7 +77,6 @@ int main(int argc, char *argv[])
     int sockfd, newsockfd;
     PowerReportStruct report;
     socklen_t clilen;
-    uint8_t buffer[CHUNK_SIZE];
     struct sockaddr_in serv_addr, cli_addr;
     int n;
     FILE *fd;
