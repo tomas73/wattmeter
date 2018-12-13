@@ -25,6 +25,8 @@
 const char *powerFileName = "/sys/tomas/gpio60/diffTime";
 const char *consumptionFileName = "/sys/tomas/gpio60/numWattHours";
 
+#define SCALE (3600)
+
 
 /******************************************************************************/
 /**
@@ -74,77 +76,78 @@ static void usage(void)
  ******************************************************************************/
 int main(int argc, char *argv[])
 {
-    int sockfd, newsockfd;
-    PowerReportStruct report;
-    socklen_t clilen;
-    struct sockaddr_in serv_addr, cli_addr;
-    int n;
-    FILE *fd;
-    float diffTime;
+  int32_t opt;
+  int sockfd, newsockfd;
+  PowerReportStruct report;
+  socklen_t clilen;
+  struct sockaddr_in serv_addr, cli_addr;
+  int n;
+  FILE *fd;
+  float diffTime;
   
 
-    /* Parse command line for required information */
-    while ((opt = getopt(argc, argv, "h")) != -1)
-      {
-	switch (opt)
+  /* Parse command line for required information */
+  while ((opt = getopt(argc, argv, "h")) != -1)
+    {
+      switch (opt)
+	{
+	case 'h':
 	  {
-	  case 'h':
-	    {
-	      usage();
-	      return 0;
+	    usage();
+	    return 0;
 	    }
-	  default:
-	    {
-	      usage();
-	      error("Unrecognized input");
-	      break;
-	    }
+	default:
+	  {
+	    usage();
+	    error("Unrecognized input");
+	    break;
 	  }
-      }
-    
+	}
+    }
+  
     /* Daemonize */
-    if (daemon(1,1) != 0) error("Failed to daemonize");
-
-    /* Setup sockets to accept connections */
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) error("ERROR opening socket");
-
-    bzero((char *) &serv_addr, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(PORT);
-    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) error("ERROR on binding");
-
-    /* Tell OS we are interested, and tell it to keep a queue of 5 clients */
-    if (listen(sockfd,5) != 0) error("Failed to listen");
-
-    /* Enter forever loop waiting to serve client requests */
-    for (;;)
-        {
-            clilen = sizeof(cli_addr);
-            newsockfd = accept(sockfd,
-                               (struct sockaddr *) &cli_addr,
-                               &clilen);
-            if (newsockfd < 0) error("ERROR on accept");
-
-	  
-	    fd = fopen(powerFileName, "r");
-	    fscanf(fd, "%f", &diffTime);
-	    fclose(fd);
-
-	    fd = fopen(consumptionFileName, "r");
-	    fscanf(fd, "%f", &wh);
-	    fclose(fd);
-
-	    report.W = (SCALE/diffTime);
-	    report.kWh = (wh/1000);
-	    
-
-            /* Transmit first block of protocol, the number of bytes to expect */
-            n = write(newsockfd, &report ,sizeof(report));
-
-            if (n != sizeof(report)) error("Error writing to socket");
-        }
-    close(sockfd);
-    return 0;
+  if (daemon(1,1) != 0) error("Failed to daemonize");
+  
+  /* Setup sockets to accept connections */
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd < 0) error("ERROR opening socket");
+  
+  bzero((char *) &serv_addr, sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_addr.s_addr = INADDR_ANY;
+  serv_addr.sin_port = htons(PORT);
+  if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) error("ERROR on binding");
+  
+  /* Tell OS we are interested, and tell it to keep a queue of 5 clients */
+  if (listen(sockfd,5) != 0) error("Failed to listen");
+  
+  /* Enter forever loop waiting to serve client requests */
+  for (;;)
+    {
+      clilen = sizeof(cli_addr);
+      newsockfd = accept(sockfd,
+			 (struct sockaddr *) &cli_addr,
+			 &clilen);
+      if (newsockfd < 0) error("ERROR on accept");
+      
+      
+      fd = fopen(powerFileName, "r");
+      fscanf(fd, "%f", &diffTime);
+      fclose(fd);
+      
+      fd = fopen(consumptionFileName, "r");
+      fscanf(fd, "%f", &wh);
+      fclose(fd);
+      
+      report.W = (SCALE/diffTime);
+      report.kWh = (wh/1000);
+      
+      
+      /* Transmit first block of protocol, the number of bytes to expect */
+      n = write(newsockfd, &report ,sizeof(report));
+      
+      if (n != sizeof(report)) error("Error writing to socket");
+    }
+  close(sockfd);
+  return 0;
 }
