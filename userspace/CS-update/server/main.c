@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
   int n;
   FILE *fd;
   float diffTime;
+  uint32_t wh;
   
 
   /* Parse command line for required information */
