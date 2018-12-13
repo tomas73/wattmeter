@@ -2,17 +2,13 @@
 /**
  * \file main.cpp
  *
- * \brief This is a TCP server that will provide the contents of a file
- *        when a connection is made on a specific port, both provided
- *        as arguments to the program.
- *        The server transmits files using the following message format
+ * \brief This is a TCP server that will provide current and accumulated 
+ *        power consumption
  *
- *        | 4 bytes fileSize | fileSize number of bytes of contents |
+ *        | 32 bit Watt | 32 bit kWh |
  *
  *
  * \author Tomas Rosenkvist
- *
- * Copyright &copy; Maquet Critical Care AB, Sweden
  *
  ******************************************************************************/
 #include <getopt.h>
@@ -25,7 +21,10 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-#define CHUNK_SIZE (1000)
+
+const char *powerFileName = "/sys/tomas/gpio60/diffTime";
+const char *consumptionFileName = "/sys/tomas/gpio60/numWattHours";
+
 
 /******************************************************************************/
 /**
@@ -53,75 +52,8 @@ void error(const char *msg)
  ******************************************************************************/
 static void usage(void)
 {
-    printf("file-trx-server is a program serve up files over a network\n");
-    printf("p - port to listen on\n");
-    printf("b - Estimate file size by counting bytes\n");
-    printf("f - File name to provide\n");
-    printf("h - print this help\n");
-
-    printf("\n");
-
-}
-
-/******************************************************************************/
-/**
- *
- * Converts a string representation of a port number to an integer representation
- *
- * \param providedPort, pointer to string representing port
- * \return the integer representation of the provided port
- *
- ******************************************************************************/
-int16_t parsePort(const char *providedPort)
-{
-    int16_t port;
-
-    if (providedPort == NULL)
-        {
-            return -1;
-        }
-
-    port = atoi(providedPort);
-    if (port == 0)
-        {
-            return -1;
-        }
-    return port;
-}
-
-/******************************************************************************/
-/**
- *
- * Verifies that providedName represents a file that we have read access to
- *
- * \param providedName, the file name to verify
- * \return the verified file name, or NULL if not valid
- *
- ******************************************************************************/
-char *parseFileName(const char *providedName)
-{
-    FILE *file = NULL;
-    char *fileName;
-
-    /* Would some plausabilitytesting be of use, i.e. can this do something bad */
-    /* when provided with a bad file name ?                                     */
-
-    if (providedName == NULL)
-        {
-            return NULL;
-        }
-
-    file = fopen(providedName, "r");
-    if (file != NULL)
-        {
-            fclose(file);
-        }
-    else
-        {
-            return NULL;
-        }
-    fileName = (char *)providedName;
-    return fileName;
+  printf("Listen on port 9123 for connections");
+  printf("\n");
 }
 
 /******************************************************************************/
@@ -131,15 +63,11 @@ char *parseFileName(const char *providedName)
  *
  * A TCP socket is opened and we start listening for incoming connections.
  * Upon conection the following happens.
- * 1. The file is opened and the size is determined
- * 2. The size is transmitted as a 32 bit number over the socket
- * 3. size number of bytes is read from the file and transmitted on the socket
- * 4. File and socket is closed
+ * 1. watt and kWh are reported
+ * 2. File and socket is closed
  *
  * Up to 5 clients can be queued up simultaneously
  *
- * \param -f file to dump data from
- * \param -p port to accept connections on
  * \param -h print help
  * \return Daemonizes
  *
@@ -147,86 +75,34 @@ char *parseFileName(const char *providedName)
 int main(int argc, char *argv[])
 {
     int sockfd, newsockfd;
-    int32_t fileSize, txFileSize, numWritten, numToWrite, opt;
-    FILE *fp;
+    PowerReportStruct report;
     socklen_t clilen;
     uint8_t buffer[CHUNK_SIZE];
     struct sockaddr_in serv_addr, cli_addr;
     int n;
-    char *fileName = NULL;
-    int16_t port = -1;
-    int countBytes = 0;
+    FILE *fd;
+    float diffTime;
+  
 
     /* Parse command line for required information */
-    while ((opt = getopt(argc, argv, "p:f:hb")) != -1)
-        {
-            switch (opt)
-                {
-                case 'f':
-                    {   //Get Filename from "optarg"
-                        fileName = parseFileName(optarg);
-                        if (fileName == NULL)
-                            {
-                                error("File not vaild");
-                            }
-
-                        break;
-                    }
-                case 'p':
-                    {   // Get port number from "optarg"
-                        port = parsePort(optarg);
-                        if (port == -1)
-                            {
-                                error("Port not valid");
-                            }
-                        break;
-                    }
-                case 'b':
-                    {
-		      countBytes = 1;
-                        break;
-                    }
-                case 'h':
-                    {
-                        usage();
-                        return 0;
-                    }
-                case '?':
-                    {
-                        if ((optopt == 'p') || (optopt == 'f'))
-                            {
-                                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-                            }
-                        else if (isprint (optopt))
-                            {
-                                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-                            }
-                        else
-                            {
-                                fprintf (stderr,
-                                         "Unknown option character `\\x%x'.\n",
-                                         optopt);
-                            }
-                        error("Invalid input");
-                        break;
-                    }
-
-                default:
-                    {
-                        usage();
-                        error("Unrecognized input");
-                        break;
-                    }
-                }
-        }
-
-    // Do we have all input?
-    if (port == -1 || fileName == NULL)
-        {
-            error("Missing vital parameter");
-            return 1; // To tell Lint we are exiting, happens in error()
-        }
-
+    while ((opt = getopt(argc, argv, "h")) != -1)
+      {
+	switch (opt)
+	  {
+	  case 'h':
+	    {
+	      usage();
+	      return 0;
+	    }
+	  default:
+	    {
+	      usage();
+	      error("Unrecognized input");
+	      break;
+	    }
+	  }
+      }
+    
     /* Daemonize */
     if (daemon(1,1) != 0) error("Failed to daemonize");
 
@@ -237,7 +113,7 @@ int main(int argc, char *argv[])
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(port);
+    serv_addr.sin_port = htons(PORT);
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) error("ERROR on binding");
 
     /* Tell OS we are interested, and tell it to keep a queue of 5 clients */
@@ -252,57 +128,23 @@ int main(int argc, char *argv[])
                                &clilen);
             if (newsockfd < 0) error("ERROR on accept");
 
-            fp = fopen(fileName, "r");
-            if (fp != NULL)
-                {
-		  if (countBytes)
-		    {
-		      fileSize = 0;
-		      while( fgetc(fp) != EOF )
-			fileSize += 1;
-		      fseek(fp, 0, SEEK_SET);
-		    }
-		  else
-		    {
-		      fseek(fp, 0, SEEK_END); // seek to end of file
-		      fileSize = ftell(fp); // get current file pointer
-		      fseek(fp, 0, SEEK_SET); // seek back to beginning of file
-		    }
-                }
-            else
-                {
-                    fileSize = 0;
-                }
+	  
+	    fd = fopen(powerFileName, "r");
+	    fscanf(fd, "%f", &diffTime);
+	    fclose(fd);
 
-            txFileSize = htonl(fileSize);
+	    fd = fopen(consumptionFileName, "r");
+	    fscanf(fd, "%f", &wh);
+	    fclose(fd);
+
+	    report.W = (SCALE/diffTime);
+	    report.kWh = (wh/1000);
+	    
+
             /* Transmit first block of protocol, the number of bytes to expect */
-            n = write(newsockfd, &txFileSize ,sizeof(fileSize));
+            n = write(newsockfd, &report ,sizeof(report));
 
-            if (n != sizeof(fileSize)) error("Error writing to socket");
-
-            numWritten = 0;
-            if (fp != NULL)
-                {
-                    while (numWritten < fileSize)
-                        {
-                            numToWrite = (fileSize - numWritten) < CHUNK_SIZE ? (fileSize - numWritten) : CHUNK_SIZE;
-                            n = fread(buffer, 1, numToWrite, fp);
-                            if (n != numToWrite)
-                                {
-                                    printf("ERROR reading file\n");
-                                    break;
-                                }
-                            n = write(newsockfd, buffer ,numToWrite);
-                            if (n != numToWrite)
-                                {
-                                    printf("ERROR writing to socket\n");
-                                    break;
-                                }
-                            numWritten += numToWrite;
-                        }
-                }
-            close(newsockfd);
-            if (fp != NULL) fclose(fp);
+            if (n != sizeof(report)) error("Error writing to socket");
         }
     close(sockfd);
     return 0;
