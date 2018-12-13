@@ -116,7 +116,6 @@ int readXBytes(int fd, uint8_t *buf, int numToRead)
 int main(int argc, char *argv[])
 {
     int32_t opt, retval, numRead, numToRead, length;
-    uint8_t buffer[CHUNK_SIZE];
     int sockfd;
     FILE *fd1;
     FILE *fd2;
