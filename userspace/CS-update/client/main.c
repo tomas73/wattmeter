@@ -172,10 +172,10 @@ int main(int argc, char *argv[])
     if (retval != sizeof(PowerReportStruct)) error("Failed FileSize");
 
     printf("Power:       %d W", report.W);
-    printf("Consumption: %d kWh", report.kWh);
+    printf("Consumption: %d Wh", report.Wh);
 
     fprintf(fd1, "%d", report.W);
-    fprintf(fd2, "%d", report.kWh);
+    fprintf(fd2, "%d", report.Wh);
     fclose(fd1);
     fclose(fd2);
 

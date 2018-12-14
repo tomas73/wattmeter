@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
       fclose(fd);
       
       report.W = (SCALE/diffTime);
-      report.kWh = (wh/1000);
+      report.Wh = wh;
       
       
       /* Transmit first block of protocol, the number of bytes to expect */

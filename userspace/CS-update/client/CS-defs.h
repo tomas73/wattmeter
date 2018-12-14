@@ -7,7 +7,7 @@
 typedef struct
 {
   uint32_t W;
-  uint32_t kWh;
+  uint32_t Wh;
 } PowerReportStruct;
 
 
