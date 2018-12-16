@@ -234,12 +234,12 @@ static void __exit tomasMeter_exit(void){
  *  return returns IRQ_HANDLED if successful -- should return IRQ_NONE otherwise.
  */
 static irq_handler_t tomasgpio_irq_handler(unsigned int irq, void *dev_id, struct pt_regs *regs){
-   #ledOn = !ledOn;                      // Invert the LED state on each meter press
-   #gpio_set_value(gpioLED, ledOn);      // Set the physical LED accordingly
+  //ledOn = !ledOn;                      // Invert the LED state on each meter press
+  //gpio_set_value(gpioLED, ledOn);      // Set the physical LED accordingly
    getnstimeofday(&ts_current);         // Get the current time as ts_current
    ts_diff = timespec_sub(ts_current, ts_last);   // Determine the time difference between last 2 presses
    ts_last = ts_current;                // Store the current time as the last time ts_last
-   #printk(KERN_INFO "TOMAS Meter: The meter state is currently: %d\n", gpio_get_value(gpioMeter));
+   //printk(KERN_INFO "TOMAS Meter: The meter state is currently: %d\n", gpio_get_value(gpioMeter));
    numWattHours++;                     // Global counter, will be outputted when the module is unloaded
    return (irq_handler_t) IRQ_HANDLED;  // Announce that the IRQ has been handled correctly
 }
