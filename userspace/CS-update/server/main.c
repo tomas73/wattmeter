@@ -25,6 +25,8 @@
 const char *powerFileName = "/sys/tomas/gpio60/diffTime";
 const char *consumptionFileName = "/sys/tomas/gpio60/numWattHours";
 
+static int numRequests;
+
 #define SCALE (3600)
 
 
@@ -39,6 +41,7 @@ const char *consumptionFileName = "/sys/tomas/gpio60/numWattHours";
  ******************************************************************************/
 void error(const char *msg)
 {
+  printf("Num Requests = %d", numRequests);
     perror(msg);
     exit(1);
 }
@@ -123,6 +126,9 @@ int main(int argc, char *argv[])
   if (listen(sockfd,5) != 0) error("Failed to listen");
   
   /* Enter forever loop waiting to serve client requests */
+  numRequests = 0;
+  printf("Start to wait for connections");
+  
   for (;;)
     {
       clilen = sizeof(cli_addr);
@@ -130,7 +136,8 @@ int main(int argc, char *argv[])
 			 (struct sockaddr *) &cli_addr,
 			 &clilen);
       if (newsockfd < 0) error("ERROR on accept");
-      
+
+      numRequests++;
       
       fd = fopen(powerFileName, "r");
       fscanf(fd, "%f", &diffTime);
