@@ -22,9 +22,12 @@
 #include <unistd.h>
 #include "CS-defs.h"
 
+const char *logFileName = "/tmp/power-update-server.log";
 const char *powerFileName = "/sys/tomas/gpio60/diffTime";
 const char *consumptionFileName = "/sys/tomas/gpio60/numWattHours";
-
+const char *acceptFail="ERROR on accept()\n";
+const char *writeFail="ERROR on accept()\n";
+const char *helloMsg="power-update-server started\n";
 static int numRequests;
 
 #define SCALE (3600)
@@ -42,8 +45,8 @@ static int numRequests;
 void error(const char *msg)
 {
   printf("Num Requests = %d", numRequests);
-    perror(msg);
-    exit(1);
+  perror(msg);
+  exit(1);
 }
 
 /******************************************************************************/
@@ -86,9 +89,9 @@ int main(int argc, char *argv[])
   struct sockaddr_in serv_addr, cli_addr;
   int n;
   FILE *fd;
+  FILE *logFd;
   float diffTime;
   uint32_t wh;
-  
 
   /* Parse command line for required information */
   while ((opt = getopt(argc, argv, "h")) != -1)
@@ -112,6 +115,8 @@ int main(int argc, char *argv[])
     /* Daemonize */
   if (daemon(1,1) != 0) error("Failed to daemonize");
   
+  logFd = fopen(logFileName, "w");
+  
   /* Setup sockets to accept connections */
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) error("ERROR opening socket");
@@ -128,15 +133,19 @@ int main(int argc, char *argv[])
   /* Enter forever loop waiting to serve client requests */
   numRequests = 0;
   printf("Start to wait for connections");
-  
+  fwrite(helloMsg, sizeof(char), strlen(helloMsg), logFd);  
+  fwrite(helloMsg, sizeof(char), strlen(helloMsg), logFd);  
   for (;;)
     {
       clilen = sizeof(cli_addr);
       newsockfd = accept(sockfd,
 			 (struct sockaddr *) &cli_addr,
 			 &clilen);
-      if (newsockfd < 0) error("ERROR on accept");
-
+      if (newsockfd < 0) 
+	{
+	  fwrite(acceptFail, sizeof(char), strlen(acceptFail), logFd);
+	  continue;
+	}
       numRequests++;
       
       fd = fopen(powerFileName, "r");
@@ -154,7 +163,11 @@ int main(int argc, char *argv[])
       /* Transmit first block of protocol, the number of bytes to expect */
       n = write(newsockfd, &report ,sizeof(report));
       
-      if (n != sizeof(report)) error("Error writing to socket");
+      if (n != sizeof(report))
+	{
+	  fwrite(writeFail, sizeof(char), strlen(writeFail), logFd);
+	  continue;
+	}
     }
   close(sockfd);
   return 0;
