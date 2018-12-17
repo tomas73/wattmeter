@@ -25,9 +25,6 @@
 const char *logFileName = "/tmp/power-update-server.log";
 const char *powerFileName = "/sys/tomas/gpio60/diffTime";
 const char *consumptionFileName = "/sys/tomas/gpio60/numWattHours";
-const char *acceptFail="ERROR on accept()\n";
-const char *writeFail="ERROR on accept()\n";
-const char *helloMsg="power-update-server started\n";
 static int numRequests;
 
 #define SCALE (3600)
@@ -115,7 +112,6 @@ int main(int argc, char *argv[])
     /* Daemonize */
   if (daemon(1,1) != 0) error("Failed to daemonize");
   
-  logFd = fopen(logFileName, "w");
   
   /* Setup sockets to accept connections */
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -133,8 +129,9 @@ int main(int argc, char *argv[])
   /* Enter forever loop waiting to serve client requests */
   numRequests = 0;
   printf("Start to wait for connections");
-  fwrite(helloMsg, sizeof(char), strlen(helloMsg), logFd);  
-  fwrite(helloMsg, sizeof(char), strlen(helloMsg), logFd);  
+  logFd = fopen(logFileName, "a+");
+  fprintf(logFd, "Server started\n");
+  fclose(logFd);
   for (;;)
     {
       clilen = sizeof(cli_addr);
@@ -143,7 +140,9 @@ int main(int argc, char *argv[])
 			 &clilen);
       if (newsockfd < 0) 
 	{
-	  fwrite(acceptFail, sizeof(char), strlen(acceptFail), logFd);
+	  logFd = fopen(logFileName, "a+");
+	  fprintf(logFd, "Error on accept()\n");
+	  fclose(logFd);
 	  continue;
 	}
       numRequests++;
@@ -165,9 +164,14 @@ int main(int argc, char *argv[])
       
       if (n != sizeof(report))
 	{
-	  fwrite(writeFail, sizeof(char), strlen(writeFail), logFd);
+	  logFd = fopen(logFileName, "a+");
+	  fprintf(logFd, "Error on write()\n");
+	  fclose(logFd);
 	  continue;
 	}
+      logFd = fopen(logFileName, "a+");
+      fprintf(logFd, "Num Requests=%d\n", numRequests);
+      fclose(logFd);
     }
   close(sockfd);
   return 0;
