@@ -25,7 +25,8 @@
 const char *logFileName = "/tmp/power-update-server.log";
 const char *powerFileName = "/sys/tomas/gpio60/diffTime";
 const char *consumptionFileName = "/sys/tomas/gpio60/numWattHours";
-static int numRequests;
+static int numRequests = 0;
+static int numFails = 0;
 
 #define SCALE (3600)
 
@@ -143,6 +144,7 @@ int main(int argc, char *argv[])
 	  logFd = fopen(logFileName, "a+");
 	  fprintf(logFd, "Error on accept()\n");
 	  fclose(logFd);
+	  numFails++;
 	  continue;
 	}
       numRequests++;
@@ -167,11 +169,15 @@ int main(int argc, char *argv[])
 	  logFd = fopen(logFileName, "a+");
 	  fprintf(logFd, "Error on write()\n");
 	  fclose(logFd);
+	  numFails++;
 	  continue;
 	}
-      logFd = fopen(logFileName, "a+");
-      fprintf(logFd, "Num Requests=%d\n", numRequests);
-      fclose(logFd);
+      if (!numRequests % 100)
+	{
+	  logFd = fopen(logFileName, "a+");
+	  fprintf(logFd, "Num Requests=%d, numFails=%d\n", numRequests, numFails);
+	  fclose(logFd);
+	}
     }
   close(sockfd);
   return 0;
