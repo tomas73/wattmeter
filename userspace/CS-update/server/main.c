@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
   numRequests = 0;
   printf("Start to wait for connections");
   logFd = fopen(logFileName, "a+");
-  fprintf(logFd, "Server started\n");
+  fprintf(logFd, "Server #1 started\n");
   fclose(logFd);
   for (;;)
     {
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
 	  numFails++;
 	  continue;
 	}
-      if (!numRequests % 100)
+      if (!(numRequests % 100))
 	{
 	  logFd = fopen(logFileName, "a+");
 	  fprintf(logFd, "Num Requests=%d, numFails=%d\n", numRequests, numFails);
