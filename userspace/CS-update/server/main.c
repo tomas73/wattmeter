@@ -176,6 +176,6 @@ int main(int argc, char *argv[])
       fprintf(logFd, "Num Requests=%d, numFails=%d\n", numRequests, numFails);
       fclose(logFd);
     }
-  close(sockfd);
+  //  close(sockfd);
   return 0;
 }
