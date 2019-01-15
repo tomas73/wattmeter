@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
       
       /* Transmit first block of protocol, the number of bytes to expect */
       n = write(newsockfd, &report ,sizeof(report));
-      close(newsockfd);
+      // close(newsockfd);
       if (n != sizeof(report))
 	{
 	  logFd = fopen(logFileName, "a+");
@@ -176,6 +176,6 @@ int main(int argc, char *argv[])
       fprintf(logFd, "Num Requests=%d, numFails=%d\n", numRequests, numFails);
       fclose(logFd);
     }
-  //  close(sockfd);
+  close(sockfd);
   return 0;
 }
